@@ -13,6 +13,8 @@ class Notification {
 
   Notification({this.title, this.body, this.isActive=true, this.isChecked=false});
 
+  Notification.withId({this.id, this.title, this.body, this.isActive=true, this.isChecked=false});
+
   Map<String, dynamic> toMap() {
     var map = <String, dynamic> {
       'title': this.title,
@@ -73,7 +75,12 @@ class NotificationDB {
 
     List<Map<String, dynamic>> maps = await db.query('notifications');
 
-    return List.generate(maps.length, (i) { return Notification(title: maps[i]['title'], body: maps[i]['body']);});
+    return List.generate(maps.length, (i) { return Notification.withId(
+      id: maps[i]['id'],
+      title: maps[i]['title'],
+      body: maps[i]['body']
+      );
+    });
   }
 
 }
