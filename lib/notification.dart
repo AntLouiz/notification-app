@@ -83,4 +83,10 @@ class NotificationDB {
     });
   }
 
+  Future<void> deleteNotification(int id) async {
+    Database db = await this.database;
+
+    await db.delete('notifications', where: 'id = ?', whereArgs: [id]);
+  }
+
 }

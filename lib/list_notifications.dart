@@ -66,8 +66,8 @@ class _NotificationsListWidgetState extends State<NotificationsListWidget> {
                       key: Key(key),
                       onDismissed: (direction) {
                         setState(() {
-                          this.notifications.removeAt(index);
-                          this.notifications.remove(item);
+                          snapshot.data.removeAt(index);
+                          db.deleteNotification(item.id);
                         });
 
                         Scaffold.of(context)
