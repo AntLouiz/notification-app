@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:random_string/random_string.dart';
 
@@ -13,31 +15,29 @@ class NotificationsListWidget extends StatefulWidget {
 
 class _NotificationsListWidgetState extends State<NotificationsListWidget> {
   List notifications = <List<notification.Notification>>[];
-
-  List<notification.Notification> _generateRandomNotifications(int total) {
-    List notifications = new List<notification.Notification>.generate(
-      total, (i) {
-        var n = notification.Notification(
-          title: randomString(10),
-          body: randomString(20),
-          isChecked: false,
-          isActive: true
-        );
-
-        return n;
-      }
-    );
-
-    return notifications;
-  }
+  bool isLoading;
+  final db = notification.NotificationDB();
+  final _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
     super.initState();
+    db.open();
+
     setState(() {
-      List randomNotifications = this._generateRandomNotifications(10);
-      this.notifications = randomNotifications;
+      this.isLoading = true;
     });
+  }
+
+  @override
+  void dispose() {
+    db.close();
+
+    super.dispose();
+  }
+
+  Future<List> _listNotifications() async {   
+    return await Future.delayed(Duration(seconds: 1), () => db.listNotifications());
   }
 
   @override
@@ -46,33 +46,48 @@ class _NotificationsListWidgetState extends State<NotificationsListWidget> {
       appBar: AppBar(
         title: Text('My notifications')
       ),
-      body: Container(
-        child: ListView.builder(
-          itemCount: this.notifications.length,
-          itemBuilder: (context, index) {
-            final item = this.notifications[index];
-            final key = '${item.title}';
-            return Dismissible(
-              key: Key(key),
-              onDismissed: (direction) {
-                setState(() {
-                  this.notifications.removeAt(index);
-                  this.notifications.remove(item);
-                });
-
-                Scaffold.of(context)
-                    .showSnackBar(SnackBar(
-                      content: Text("Notificação removida", style: TextStyle(fontSize: 15),),
-                      backgroundColor: Colors.blueAccent,
-                    ));
+      body: FutureBuilder<List>(
+        future: _listNotifications(),
+        builder: (BuildContext context, AsyncSnapshot<List> snapshot) {
+          if (snapshot.hasData) {
+            return RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: () async {
+                setState(() {});
               },
-              background: DismissBackground(),
-              child: NotificationCardWidget(notificationData: item),
+              child: Container(
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: snapshot.data.length,
+                  itemBuilder: (context, index) {
+                    final item = snapshot.data[index];
+                    final key = '${item.title}';
+                    return Dismissible(
+                      key: Key(key),
+                      onDismissed: (direction) {
+                        setState(() {
+                          this.notifications.removeAt(index);
+                          this.notifications.remove(item);
+                        });
+
+                        Scaffold.of(context)
+                            .showSnackBar(SnackBar(
+                              content: Text("Notificação removida", style: TextStyle(fontSize: 15),),
+                              backgroundColor: Colors.blueAccent,
+                            ));
+                      },
+                      background: DismissBackground(),
+                      child: NotificationCardWidget(notificationData: item),
+                    );
+                  },
+                ),
+              ),
             );
-          },
-        ),
-      ),
-    );
+          } else {
+            return Center(child: CircularProgressIndicator());
+          }
+        }
+      ));
   }
 }
 
